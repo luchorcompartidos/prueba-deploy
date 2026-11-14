@@ -1,0 +1,26 @@
+name: Tag y Release automáticos
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Crear siguiente tag y Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          last=$(git tag -l 'v*' | sed 's/^v//' | grep -E '^[0-9]+$' | sort -n | tail -1)
+          next="v$(( ${last:-0} + 1 ))"
+          msg=$(git log -1 --pretty=%s)
+          git tag "$next"
+          git push origin "$next"
+          gh release create "$next" --title "$next" --notes "Deploy automático: $msg (commit ${GITHUB_SHA::7})"
